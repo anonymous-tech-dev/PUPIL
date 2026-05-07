@@ -1,0 +1,107 @@
+# ═══════════════════════════════════════════════════════════════════════════
+# EduCoT — Education-Optimised Chain of Thought
+# ═══════════════════════════════════════════════════════════════════════════
+#
+# Pipeline:  Video → Segment → [Keyframe Filter] → [VLM Selection]
+#                  → Aggregate → Answer
+#
+# Every bracketed stage is independently toggleable via this config.
+#
+# QUICK-START RECIPES
+# ───────────────────
+#   # Baseline (uniform sample k frames → answer)
+#   python main.py pipeline.vlm_selection=false
+#
+#   # TCoT replication (uniform segments + VLM selection)
+#   python main.py pipeline.segmentation=uniform pipeline.vlm_selection=true
+#
+#   # Scene-detect + keyframe filter + VLM selection (full EduCoT)
+#   python main.py pipeline.segmentation=scene_detect pipeline.keyframe_filter=true
+#
+#   # Switch model
+#   python main.py model.name=Qwen2.5-VL-7B model.model_id=Qwen/Qwen2.5-VL-7B-Instruct
+#
+# ═══════════════════════════════════════════════════════════════════════════
+
+# ─── Hydra boilerplate ─────────────────────────────────────────────────────
+hydra:
+  output_subdir: null
+  run:
+    dir: .
+  sweep:
+    dir: .
+    subdir: .
+
+# ─── Pipeline Toggles ─────────────────────────────────────────────────────
+pipeline:
+  segmentation: "scene_detect"    # "uniform" | "scene_detect"
+  keyframe_filter: false          # Farnebäck optical-flow keyframe filtering
+  vlm_selection: false            # VLM-based frame selection (TCoT-style)
+  selection_mode: "none"          # "vlm" | "clip" | "none"  (overrides vlm_selection)
+
+# ─── Segmentation ─────────────────────────────────────────────────────────
+segmentation:
+  # Uniform (TCoT default)
+  num_segments: 12                # l — number of equal time windows
+
+  # Scene detection (decord MAD) — used when pipeline.segmentation=scene_detect
+  scene_detect:
+    threshold: 50.0               # mean-absolute-diff threshold (higher → fewer cuts)
+    sample_fps: 2                 # FPS for scene analysis (lower → faster)
+    frame_width: 320              # decode width for analysis (lower → faster)
+    frame_height: 180             # decode height for analysis
+    min_scene_length: 3.0         # seconds — merge cuts closer than this
+    max_scene_length: 60.0        # seconds — split longer scenes
+
+# ─── Keyframe Filter (Farnebäck Optical Flow) ──────────────────────────────
+keyframe_filter:
+  method: "farneback"             # "farneback" | "mad" | "histogram" | "dhash"
+  motion_threshold: 0.8           # keep frames with score ≥ this
+  sample_fps: 2                   # FPS for motion analysis
+  max_frame_width: 640            # downscale longest edge for cheaper flow
+  min_keyframes_per_segment: 4    # floor — never drop below this many
+
+# ─── Frame Selection (VLM Call) ────────────────────────────────────────────
+selection:
+  frames_per_segment: 64          # s — max frames shown per selection call
+  max_tokens: 512                 # max new tokens for selection JSON output
+  num_rounds: 12                  # fixed number of VLM selection rounds
+                                  # (keeps cost constant regardless of scene count)
+  clip_pool_size: 512             # max frames to decode+encode for CLIP selection
+
+# ─── Context Aggregation ──────────────────────────────────────────────────
+aggregation:
+  context_budget_frames: 768      # k — total frames in final answering context
+  uniform_context_frames: 96      # u — uniform temporal-awareness frames
+
+# ─── Model ─────────────────────────────────────────────────────────────────
+model:
+  name: "Qwen3-VL-8B"
+  model_id: "Qwen/Qwen3-VL-8B-Instruct"
+  device: "cuda"
+  attn_impl: "flash_attention_2"
+  tokens_per_frame: 128           # vision tokens/frame (128 for both Qwen2.5/3)
+
+# ─── Generation ───────────────────────────────────────────────────────────
+generation:
+  answer_max_tokens: 512
+
+# ─── Video ─────────────────────────────────────────────────────────────────
+video_fps: 1                      # FPS for frame extraction (paper = 1)
+
+# ─── Dataset ──────────────────────────────────────────────────────────────
+dataset:
+  name: "lvbench_v2"              # "lvbench_v2" | "Pupil"
+  lvbench:
+    meta_file: "/workspace/Pupil/frame_sampling_experiments/temporal_cot_gdm/video_meta.jsonl"
+    video_dir: "/data/Pupil/lvbench_v2"
+  Pupil:
+    meta_file: ""                 # path to Pupil JSONL metadata
+    video_dir: ""                 # path to Pupil videos
+
+# ─── Run Control ──────────────────────────────────────────────────────────
+num_samples: -1                   # -1 = all
+cuda_visible_devices: "3"
+
+# ─── Results ──────────────────────────────────────────────────────────────
+results_dir: "results"

@@ -1,0 +1,110 @@
+# ═══════════════════════════════════════════════════════════════════════════
+# EduCoT × Pupil
+#   Pipeline: Video → Segment → [Keyframe Filter] → [VLM Selection]
+#                   → Aggregate → Answer
+# ═══════════════════════════════════════════════════════════════════════════
+
+hydra:
+  output_subdir: null
+  run:
+    dir: .
+  sweep:
+    dir: .
+    subdir: .
+
+# ─── Pipeline Toggles ─────────────────────────────────────────────────────
+pipeline:
+  segmentation: "scene_detect"     # "uniform" | "scene_detect"
+  keyframe_filter: false
+  vlm_selection: false             # off → use uniform/scene-aware sampling only
+  selection_mode: "none"           # "vlm" | "clip" | "scene_zoom" | "time_router" | "none"
+  shuffle_choices_seed: null
+
+# ─── Segmentation ─────────────────────────────────────────────────────────
+segmentation:
+  num_segments: 12
+  scene_detect:
+    threshold: 50.0
+    sample_fps: 2
+    frame_width: 320
+    frame_height: 180
+    min_scene_length: 3.0
+    max_scene_length: 60.0
+
+# ─── Keyframe Filter (Farnebäck Optical Flow) ──────────────────────────────
+keyframe_filter:
+  method: "farneback"
+  motion_threshold: 0.8
+  sample_fps: 2
+  max_frame_width: 640
+  min_keyframes_per_segment: 4
+
+# ─── Frame Selection (VLM Call) ────────────────────────────────────────────
+selection:
+  frames_per_segment: 64
+  max_tokens: 512
+  num_rounds: 12
+  clip_pool_size: 512
+  prune_show_frames: 64
+
+# ─── Scene Zoom Routing ─────────────────────────────────────────────────────
+scene_zoom:
+  max_scene_reps: 48
+  top_scenes: 3
+  neighbor_hops: 1
+  frames_per_rep: 1
+
+# ─── Time-Range Router ───────────────────────────────────────────────────────
+time_router:
+  overview_frames: 32
+  max_ranges: 4
+  neighbor_hops: 1
+  fallback_keep_frac: 0.5
+
+# ─── Context Aggregation ──────────────────────────────────────────────────
+aggregation:
+  context_budget_frames: 768
+  uniform_context_frames: 96
+  adaptive_k: false
+  adaptive_k_version: 1
+
+# ─── Model ─────────────────────────────────────────────────────────────────
+model:
+  name: "Qwen3-VL-8B"
+  model_id: "Qwen/Qwen3-VL-8B-Instruct"
+  device: "cuda"
+  attn_impl: "flash_attention_2"
+  tokens_per_frame: 128
+  # Optional LoRA adapter — leave empty to use base model.
+  # If empty here, the env var ADAPTER_DIR is also honoured.
+  adapter_dir: ""
+  adapter_tag: ""
+
+# ─── Generation ───────────────────────────────────────────────────────────
+generation:
+  answer_max_tokens: 512
+  prompt_style: "openended"        # "direct" | "openended" | "per_option"
+
+# ─── Video ─────────────────────────────────────────────────────────────────
+video_fps: 1
+
+# ─── Dataset ──────────────────────────────────────────────────────────────
+dataset:
+  name: "Pupil"            # "lvbench_v2" | "Pupil"
+  lvbench:
+    meta_file: "/workspace/Pupil/frame_sampling_experiments/temporal_cot_gdm/video_meta.jsonl"
+    video_dir: "/data/Pupil/lvbench_v2"
+  Pupil:
+    meta_file: "/workspace/Pupil/dataset_curation/dataset/queries_db/final_1k/final_1k_for_cot.jsonl"
+    video_dir: "/workspace/Pupil/dataset_curation/dataset/videos_db/final_1k"
+
+# ─── Run Control ──────────────────────────────────────────────────────────
+num_samples: -1                    # -1 = all (per shard, before slicing)
+cuda_visible_devices: "0"
+
+# ─── Sharding (overridden by run_parallel.sh) ─────────────────────────────
+shard_id: 0
+num_shards: 1
+
+# ─── Results ──────────────────────────────────────────────────────────────
+results_dir: "results"

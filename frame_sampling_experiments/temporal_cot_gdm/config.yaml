@@ -1,0 +1,60 @@
+# conf/config.yaml
+
+# ─── Stop Hydra from creating timestamped output folders ───────────────────────
+hydra:
+  output_subdir: null
+  run:
+    dir: .
+  sweep:
+    dir: .
+    subdir: .
+
+# ─── Model & Dataset ───────────────────────────────────────────────────────────
+# Qwen2.5-VL-7B, Qwen3-VL-8B
+model: "Qwen3-VL-8B"
+dataset: "lvbench_v2"
+
+# ─── Run Control ───────────────────────────────────────────────────────────────
+num_samples: -1
+cuda_visible_devices: "0"   # which physical GPU to use
+
+# ─── TCoT Variant & Hyperparameters ────────────────────────────────────────────
+tcot_variant: "dynamic_segment"
+# Number of video segments (l). Higher → more compute, more coverage.
+num_segments: 12
+# Frames sampled per segment for the selection call (s).
+frames_per_segment: 128
+# Total answering context budget in frames (k).
+context_budget_frames: 512
+# Uniform context frames added alongside model-selected frames (u).
+uniform_context_frames: 128
+
+hier_neighbourhood: 10
+hier_max_iters: 3
+
+# ─── Model Hyperparameters ─────────────────────────────────────────────────────
+video_fps: 1
+selection_max_tokens: 512
+answer_max_tokens: 512
+answer_temperature: 0.0
+
+# ─── Qwen3-VL specific ───────────────────────────────────────────────────────
+# qwen_model_id: "Qwen/Qwen2.5-VL-7B-Instruct"
+qwen_model_id: "Qwen/Qwen3-VL-8B-Instruct"
+qwen_device: "cuda"
+attn_impl: "flash_attention_2"
+
+# ─── GPT / Azure specific ──────────────────────────────────────────────────────
+gpt_deployment: "gpt-4o_2024-11-20"
+gpt_api_version: "2024-10-21"
+gpt_endpoint: "https://<AZURE_OPENAI_ENDPOINT>"
+
+# ─── Paths ─────────────────────────────────────────────────────────────────────
+results_dir: "results"
+egoschema_questions: "/home/Pupil/frame_sampling_experiments/datasets/egoschema/subset_questions.json"
+egoschema_answers: "/home/Pupil/frame_sampling_experiments/datasets/egoschema/subset_answers.json"
+egoschema_video_dir: "/home/Pupil/frame_sampling_experiments/datasets/egoschema/videos/videos"
+lvbench_v1_meta: "/home/Pupil/frame_sampling_experiments/datasets/LVBench/video_info.meta.jsonl"
+lvbench_v1_video_dir: "/home/Pupil/frame_sampling_experiments/datasets/LVBench/videos"
+lvbench_v2_meta: "/workspace/Pupil/frame_sampling_experiments/temporal_cot_gdm/video_meta.jsonl"
+lvbench_v2_video_dir: "/data/Pupil/lvbench_v2"

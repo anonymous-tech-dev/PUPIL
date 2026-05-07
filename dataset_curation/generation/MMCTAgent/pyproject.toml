@@ -1,0 +1,210 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mmct"
+version = "1.0.0"
+description = "Multi-modal Critical Thinking Agent Framework"
+readme = "README.md"
+requires-python = ">=3.8"
+license = "MIT"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    # Web Framework & API
+    "fastapi>=0.115.0,<1.0.0",
+    "uvicorn[standard]>=0.32.0,<1.0.0",
+    "python-multipart>=0.0.20,<1.0.0",
+
+    # Data Validation & Configuration
+    "pydantic>=2.8.0,<3.0.0",
+    "pydantic-settings>=2.5.0,<3.0.0",
+
+    # Logging & Utilities
+    "loguru>=0.7.0,<1.0.0",
+    "aiofiles>=23.2.0,<=24.1.0",
+    "python-dotenv>=1.0.0,<2.0.0",
+    "PyYAML>=6.0.0,<7.0.0",
+    "tqdm>=4.67.0,<5.0.0",
+    "urllib3>=2.2.0,<3.0.0",
+    "requests>=2.31.0,<3.0.0",
+    "numpy>=1.24.0,<2.0.0",
+
+    # AI/LLM Core
+    "openai>=1.72.0,<2.0.0",
+    "tiktoken>=0.7.0,<1.0.0",
+
+    # AutoGen Framework
+    "autogen>=0.8.0,<1.0.0",
+    "autogen-agentchat>=0.4.9.0,<1.0.0",
+    "autogen-core>=0.4.9.0,<1.0.0",
+    "autogen-ext>=0.4.9.0,<1.0.0",
+]
+
+[project.optional-dependencies]
+# Image Pipeline features (includes local + Azure providers)
+image-agent = [
+    # ML dependencies for image models
+    "torch",
+    "torchvision",
+    "transformers>=4.30.0,<5.0.0",
+    # Image-specific libraries
+    "ultralytics>=8.3.0,<9.0.0",
+    "ultralytics-thop>=2.0.0,<3.0.0",
+    "modelscope>=1.24.0,<2.0.0",
+    "addict>=2.4.0,<3.0.0",
+    "Pillow",
+    # Azure providers (for cloud-based workflows)
+    "azure-identity>=1.19.0,<2.0.0",
+    "azure-core>=1.32.0,<2.0.0",
+    "azure-storage-blob>=12.24.0,<13.0.0",
+]
+
+# Video Pipeline features (includes local models + Azure providers)
+video-agent = [
+    # ML dependencies for video models
+    "torch",
+    "torchvision",
+    "transformers>=4.30.0,<5.0.0",
+    # Video-specific libraries
+    "opencv-python-headless>=4.8.0.0,<5.0.0",
+    "ffmpeg-python",
+    "pydub>=0.25.1,<1.0.0",
+    "scikit-learn>=1.3.0,<2.0.0",
+    "scipy>=1.11.0,<2.0.0",
+    "networkx",
+    "faiss-cpu",
+    "datasets>=2.20.0,<3.0.0",
+    "accelerate==1.10.1",
+    # Azure providers (for cloud-based transcription, search, storage)
+    "azure-identity>=1.19.0,<2.0.0",
+    "azure-core>=1.32.0,<2.0.0",
+    "azure-storage-blob>=12.24.0,<13.0.0",
+    "azure-search-documents>=11.5.0,<12.0.0",
+    "azure-cognitiveservices-speech>=1.41.0,<2.0.0",
+    "azure-monitor-opentelemetry-exporter>=1.0.0b33",
+    "azure-eventhub>=5.14.0,<6.0.0",
+    "azure-eventhub-checkpointstoreblob-aio",
+]
+
+# Complete installation (all features including MCP server)
+all = [
+    "mmct[image-agent,video-agent]",
+    "fastmcp==2.11.3",
+    "autogen-ext[mcp]",
+]
+
+# Development tools
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-mock>=3.12.0",
+    "black>=23.9.0",
+    "isort>=5.12.0",
+    "mypy>=1.6.0",
+    "pre-commit>=3.4.0",
+]
+
+# Documentation generation
+docs = [
+    "mkdocs>=1.5.0",
+    "mkdocs-material>=9.4.0",
+    "mkdocstrings[python]>=0.23.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["mmct*", "mcp_server*"]
+exclude = ["tests", "tests.*", "*.tests", "*.tests.*"]
+
+[tool.setuptools.package-data]
+mmct = ["py.typed"]
+
+[tool.setuptools.exclude-package-data]
+"*" = ["tests", "tests.*", "*.tests", "*.tests.*"]
+
+[project.urls]
+Homepage = "https://github.com/microsoft/MMCTAgent"
+Repository = "https://github.com/microsoft/MMCTAgent"
+Documentation = "https://github.com/microsoft/MMCTAgent/blob/main/README.md"
+Issues = "https://github.com/microsoft/MMCTAgent/issues"
+
+
+[tool.black]
+line-length = 100
+target-version = ['py38']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 100
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+show_error_codes = true
+
+[[tool.mypy.overrides]]
+module = [
+    "azure.*",
+    "openai.*",
+    "uvicorn.*",
+    "autogen.*",
+]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--strict-markers",
+    "--disable-warnings",
+    "-v",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+]
